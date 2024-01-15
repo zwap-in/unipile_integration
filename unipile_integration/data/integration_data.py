@@ -14,6 +14,6 @@ class IntegrationAccountData:
         self.first_name = kwargs.get("first_name")
         self.last_name = kwargs.get("last_name")
         self.full_name = f"{self.first_name} {self.last_name}"
-        self.linkedin_email = kwargs.get("public_identifier")
+        self.linkedin_username = kwargs.get("public_identifier")
         self.avatar_pic = kwargs.get("profile_picture_url")
         self.owner_id = kwargs.get("owner_id")
