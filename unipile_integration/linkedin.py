@@ -43,8 +43,9 @@ class LinkedinUniPileIntegration:
         }
         response = self._base_call("accounts", {
             "provider": "LINKEDIN",
-            "access_token": li_at_cookie
-        }, **kwargs)
+            "access_token": li_at_cookie,
+            **kwargs
+        })
         if response.status_code == 201:
             data = response.json()
             return data.get("account_id")
