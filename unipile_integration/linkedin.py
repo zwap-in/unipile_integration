@@ -32,6 +32,12 @@ class LinkedinUniPileIntegration:
             return requests.post(f"{self._base_endpoint_path}/{path}", headers={
                 "X-API-KEY": self._auth_token
             }, **kwargs)
+        elif method_name == "delete":
+            return requests.delete(
+                f"{self._base_endpoint_path}/{path}", headers={
+                    "X-API-KEY": self._auth_token
+                }
+            )
         return requests.get(f"{self._base_endpoint_path}/{path}", headers={
                 "X-API-KEY": self._auth_token
         })
@@ -121,3 +127,8 @@ class LinkedinUniPileIntegration:
         if owner_id is not None:
             sleep(1)
             return self._retrieve_current_user_data(owner_id)
+
+    def delete_linkedin_connection(self, owner_id: str) -> bool:
+
+        response = self._base_call(f"accounts/{owner_id}", {}, method_name="delete")
+        return response.status_code == 200
