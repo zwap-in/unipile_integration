@@ -12,7 +12,8 @@ class ExampleIntegration:
     def run(self, example_type: str, example_data: dict):
         if example_type == "auth_user":
             li_at_cookie = example_data.get("li_at_cookie")
-            return self._integration.auth_user(li_at_cookie)
+            user_agent = example_data.get("user_agent")
+            return self._integration.auth_user(li_at_cookie, user_agent)
         if example_type == "send_message":
             owner_id = example_data.get("owner_id")
             usernames = example_data.get("usernames")
