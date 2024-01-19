@@ -8,7 +8,8 @@ import requests
 from requests import Response
 
 # IMPORTING LOCAL PACKAGES
-from unipile_integration.data import IntegrationAccountData, MessageData, AccountData
+from unipile_integration.data import IntegrationAccountData, MessageData,\
+    AccountData, MessageCheck, ConnectionCheck
 
 
 class LinkedinUniPileIntegration:
@@ -74,6 +75,40 @@ class LinkedinUniPileIntegration:
         response = self._base_call(f"chat_attendees/{provider_id}/chats?account_id={owner_id}", {}, method_name="get")
         return response.status_code == 200
 
+    def _get_reply_to_message_id(self, chat_id: str, owner_id: str, message_text: str, receiver_id: str) -> Optional[str]:
+
+        response = self._base_call(f"chats/{chat_id}/messages?sender_id={owner_id}", {}, method_name="get")
+        reply_text = None
+        if response.status_code == 200:
+            items = response.json()
+            message_items = items.get("items", [])
+            for index, item in enumerate(message_items):
+                if index + 1 < len(message_items) and \
+                        message_items[index + 1]["text"].strip() == message_text.strip() \
+                        and item["sender_id"] == receiver_id:
+                    reply_text = item["text"]
+                    break
+        return reply_text
+
+    def _get_chat_by_username(self, linkedin_username: str, owner_id: str, message_text: str) -> Optional[str]:
+
+        account_data = self._get_user_info(linkedin_username, owner_id)
+        has_connection, user_id = account_data.has_connection, account_data.user_id
+        if has_connection and user_id is not None:
+            response = self._base_call(f"chat_attendees/{user_id}/chats?account_id={owner_id}", {},
+                                       method_name="get")
+            if response.status_code == 200:
+                data = response.json()
+                items = data.get("items", [])
+                if len(items) > 0:
+                    chat_id = items[0].get("id")
+                    return self._get_reply_to_message_id(
+                        chat_id=chat_id,
+                        owner_id=owner_id,
+                        message_text=message_text,
+                        receiver_id=user_id
+                    )
+
     def has_accepted_connection(self, linkedin_username: str, owner_id: str) -> Tuple[bool, Optional[str]]:
 
         response = self._get_user_info(linkedin_username, owner_id)
@@ -132,3 +167,40 @@ class LinkedinUniPileIntegration:
 
         response = self._base_call(f"accounts/{owner_id}", {}, method_name="delete")
         return response.status_code == 200
+
+    def check_replies(self, owner_id: str, messages_data: List[MessageCheck]) -> List[MessageCheck]:
+
+        finals = []
+        for message in messages_data:
+            reply_text = self._get_chat_by_username(message.username, owner_id, message.message_text)
+            finals.append(
+                MessageCheck(
+                    **{
+                        "username": message.username,
+                        "message_text": message.message_text,
+                        "reply_text": reply_text
+                    }
+                )
+            )
+        return finals
+
+    def check_connections(self, owner_id: str, usernames: list) -> List[ConnectionCheck]:
+
+        finals = []
+        for username in usernames:
+            check, _ = self.has_accepted_connection(username, owner_id)
+            finals.append(
+                ConnectionCheck(
+                    **{
+                        "username": username,
+                        "has_accepted": check
+                    }
+                )
+            )
+        return finals
+
+    def auth_user_with_credentials(self, username: str, password) -> None:
+        pass
+
+    def solve_code_checkpoint(self, code: str, account_id: str) -> None:
+        pass
