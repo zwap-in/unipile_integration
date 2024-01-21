@@ -43,12 +43,15 @@ class LinkedinUniPileIntegration:
                 "X-API-KEY": self._auth_token
         })
 
-    def _add_linkedin_integration(self, li_at_cookie: str, user_agent: str) -> Optional[str]:
+    def _add_linkedin_integration(self, li_at_cookie: str, user_agent: str, li_a_cookie: str = None,
+                                  recruiter_contract_id: str = None) -> Optional[str]:
 
         response = self._base_call("accounts", {
             "provider": "LINKEDIN",
             "access_token": li_at_cookie,
-            "user_agent": user_agent
+            "user_agent": user_agent,
+            "premium_token": li_a_cookie,
+            "recruiter_contract_id": recruiter_contract_id
         })
         if response.status_code == 201:
             data = response.json()
@@ -156,9 +159,11 @@ class LinkedinUniPileIntegration:
                 )
         return codes_status
 
-    def auth_user(self, li_at_cookie: str, user_agent: str) -> Optional[IntegrationAccountData]:
+    def auth_user(self, li_at_cookie: str, user_agent: str, li_a_cookie: str = None,
+                  recruiter_contract_id: str = None) -> Optional[IntegrationAccountData]:
 
-        owner_id = self._add_linkedin_integration(li_at_cookie, user_agent)
+        owner_id = self._add_linkedin_integration(li_at_cookie, user_agent, li_a_cookie=li_a_cookie,
+                                                  recruiter_contract_id=recruiter_contract_id)
         if owner_id is not None:
             sleep(1)
             return self._retrieve_current_user_data(owner_id)
