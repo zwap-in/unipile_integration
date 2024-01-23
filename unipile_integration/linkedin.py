@@ -46,13 +46,14 @@ class LinkedinUniPileIntegration:
     def _add_linkedin_integration(self, li_at_cookie: str, user_agent: str, li_a_cookie: str = None,
                                   recruiter_contract_id: str = None) -> Optional[str]:
 
-        response = self._base_call("accounts", {
+        payload = {
             "provider": "LINKEDIN",
             "access_token": li_at_cookie,
             "user_agent": user_agent,
             "premium_token": li_a_cookie,
             "recruiter_contract_id": recruiter_contract_id
-        })
+        }
+        response = self._base_call("accounts", self._parse_payload(payload))
         if response.status_code == 201:
             data = response.json()
             return data.get("account_id")
@@ -209,3 +210,12 @@ class LinkedinUniPileIntegration:
 
     def solve_code_checkpoint(self, code: str, account_id: str) -> None:
         pass
+
+    @staticmethod
+    def _parse_payload(data: dict) -> dict:
+
+        finals = {}
+        for item in data:
+            if data[item] is not None:
+                finals[item] = data[item]
+        return finals
