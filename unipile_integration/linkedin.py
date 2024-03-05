@@ -1,5 +1,6 @@
 # IMPORTING STANDARD PACKAGES
 from time import sleep
+from datetime import datetime
 from typing import Optional, List, Tuple
 
 # IMPORTING THIRD PARTY PACKAGES
@@ -204,6 +205,79 @@ class LinkedinUniPileIntegration:
                 )
             )
         return finals
+
+    def scrape_job_post_skills(self, account_id: str, job_post_id: str) -> list:
+
+        payload = {
+            "query_params": {"decorationId": "com.linkedin.voyager.dash.deco.assessments.FullJobSkillMatchInsight-16"},
+            "request_url": f"https://www.linkedin.com/voyager/api/voyagerAssessmentsDashJobSkillMatchInsight/urn:li:fsd_jobSkillMatchInsight:{job_post_id}/",
+            "method": "GET",
+            "account_id": account_id,
+            "encoding": False
+        }
+        response = self._base_call("linkedin", data=payload, method_name="post")
+        if response.status_code == 200:
+            data = response.json().get("data", {})
+            skills = data["skillMatchStatuses"]
+            return [item["localizedSkillDisplayName"] for item in skills]
+        return []
+
+    def scrape_job_post_by_linkedin(self, account_id: str, job_post_id: str):
+
+        payload = {
+            "query_params": {"decorationId": "com.linkedin.voyager.deco.jobs.web.shared.WebFullJobPosting-65"},
+            "request_url": f"https://www.linkedin.com/voyager/api/jobs/jobPostings/{job_post_id}/",
+            "method": "GET",
+            "account_id": account_id,
+            "encoding": False
+        }
+        response = self._base_call("linkedin", data=payload, method_name="post")
+        if response.status_code == 200:
+            job_data = response.json().get("data", {})
+            key_name = list(job_data.get("companyDetails").keys())[0]
+            work_place_type = job_data["workplaceTypes"][0] if len(job_data["workplaceTypes"]) else None,
+            work_place_type = None if work_place_type is None else (
+                "hybrid" if "3" in work_place_type else (
+                    "fully_remote" if "2" in work_place_type else "physical"))
+            job_post_url = f"https://www.linkedin.com/jobs/search/?currentJobId={job_data['jobPostingId']}"
+            timestamp_seconds = job_data["listedAt"] / 1000
+            dt_object = datetime.utcfromtimestamp(timestamp_seconds)
+            listed_at = dt_object.strftime('%d %B %Y, %H:%M:%S UTC')
+            timing_mode = job_data.get("employmentStatusResolutionResult", {}).get("entityUrn", "")
+            timing_mode = self.get_timing_mode(timing_mode)
+            return {
+                "job_title": job_data["title"],
+                "company_id": job_data.get("companyDetails", {}).get(key_name, {})
+                .get("companyResolutionResult", {}).get("entityUrn", None),
+                "company_name": job_data.get("companyDetails", {}).get(key_name, {})
+                .get("companyResolutionResult", {}).get("name", None),
+                "company_linkedin": job_data.get("companyDetails", {}).get(key_name, {})
+                .get("companyResolutionResult", {}).get("url", None),
+                "description": job_data["description"]["text"],
+                "work_mode_type": work_place_type,
+                "location_name": job_data["formattedLocation"],
+                "listed_at": listed_at,
+                "job_post_url": job_post_url,
+                "timing": timing_mode,
+            }
+
+    @staticmethod
+    def get_timing_mode(timing_urn: str) -> str:
+
+        if "CONTRACT" in timing_urn:
+            return "contract"
+        elif "FULL_TIME" in timing_urn:
+            return "full_time"
+        elif "PART_TIME" in timing_urn:
+            return "part_time"
+        elif "TEMPORARY" in timing_urn:
+            return "temporary"
+        elif "VOLUNTEER" in timing_urn:
+            return "other"
+        elif "INTERNSHIP" in timing_urn:
+            return "other"
+        else:
+            return "other"
 
     def auth_user_with_credentials(self, username: str, password) -> None:
         pass
