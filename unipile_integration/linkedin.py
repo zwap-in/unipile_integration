@@ -167,7 +167,7 @@ class LinkedinUniPileIntegration:
         owner_id = self._add_linkedin_integration(li_at_cookie, user_agent, li_a_cookie=li_a_cookie,
                                                   recruiter_contract_id=recruiter_contract_id)
         if owner_id is not None:
-            sleep(1)
+            sleep(2)
             return self._retrieve_current_user_data(owner_id)
 
     def delete_linkedin_connection(self, owner_id: str) -> bool:
