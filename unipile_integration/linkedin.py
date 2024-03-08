@@ -83,19 +83,22 @@ class LinkedinUniPileIntegration:
     def _get_reply_to_message_id(self, chat_id: str, owner_id: str, message_text: str, receiver_id: str) -> Optional[str]:
 
         response = self._base_call(f"chats/{chat_id}/messages?sender_id={owner_id}", {}, method_name="get")
-        messages = []
         if response.status_code == 200:
             items = response.json()
             message_items = items.get("items", [])
-            for index, item in enumerate(message_items):
-                if index + 1 < len(message_items) and \
-                        message_items[index]["text"].strip() != message_text.strip() \
-                        and item["sender_id"] == receiver_id:
-                    messages.append(item["text"])
-                else:
-                    break
-        messages.reverse()
-        return "\n".join(messages)
+            collecting = False
+            replies = []
+            for item in reversed(message_items):
+                if item["text"].strip() == message_text.strip() and item["sender_id"] != receiver_id:
+                    collecting = True
+                    continue
+                if collecting:
+                    if item["sender_id"] == receiver_id:
+                        replies.append(item["text"])
+                    else:
+                        break
+            return "\n".join(replies)
+        return None
 
     def _get_chat_by_username(self, linkedin_username: str, owner_id: str, message_text: str) -> Optional[Tuple[str, str]]:
 
