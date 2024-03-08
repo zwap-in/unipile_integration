@@ -97,7 +97,7 @@ class LinkedinUniPileIntegration:
         messages.reverse()
         return "\n".join(messages)
 
-    def _get_chat_by_username(self, linkedin_username: str, owner_id: str, message_text: str) -> Optional[str]:
+    def _get_chat_by_username(self, linkedin_username: str, owner_id: str, message_text: str) -> Optional[Tuple[str, str]]:
 
         account_data = self._get_user_info(linkedin_username, owner_id)
         has_connection, user_id = account_data.has_connection, account_data.user_id
@@ -114,7 +114,7 @@ class LinkedinUniPileIntegration:
                         owner_id=owner_id,
                         message_text=message_text,
                         receiver_id=user_id
-                    )
+                    ), chat_id
 
     def has_accepted_connection(self, linkedin_username: str, owner_id: str) -> Tuple[bool, Optional[str]]:
 
@@ -181,13 +181,14 @@ class LinkedinUniPileIntegration:
 
         finals = []
         for message in messages_data:
-            reply_text = self._get_chat_by_username(message.username, owner_id, message.message_text)
+            reply_text, chat_id = self._get_chat_by_username(message.username, owner_id, message.message_text)
             finals.append(
                 MessageCheck(
                     **{
                         "username": message.username,
                         "message_text": message.message_text,
-                        "reply_text": reply_text
+                        "reply_text": reply_text,
+                        "chat_id": chat_id
                     }
                 )
             )
@@ -207,11 +208,6 @@ class LinkedinUniPileIntegration:
                 )
             )
         return finals
-
-    def get_full_conversation(self, public_slug: str, owner_id: str) -> list:
-
-
-        return []
 
     def scrape_job_post_skills(self, account_id: str, job_post_id: str) -> list:
 
