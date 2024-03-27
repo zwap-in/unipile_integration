@@ -136,7 +136,7 @@ class LinkedinUniPileIntegration:
         return False
 
     def send_message(self, attendees_username: list, owner_id: str, message: str,
-                     check_message_not_sent: bool = True) -> List[MessageData]:
+                     check_message_not_sent: bool = True, inmail_message: bool = False) -> List[MessageData]:
 
         codes_status = []
         final_users = [self._get_user_info(
@@ -147,11 +147,20 @@ class LinkedinUniPileIntegration:
             could_send_message = self._has_conversation_started(owner_id, attendee) is False if check_message_not_sent\
                 else True
             if could_send_message:
+                kwargs = {}
+                if inmail_message:
+                    kwargs = {
+                        "linkedin": {
+                            "api": 'recruiter',
+                            "inmail": True
+                        }
+                    }
                 response = self._base_call("chats", {
                     "attendees_ids": attendee,
                     "account_id": owner_id,
-                    "text": message
-                }, body_type="form")
+                    "text": message,
+                    **kwargs
+                }, body_type="json")
                 chat_id = None
                 if response.status_code == 201:
                     data = response.json()
@@ -164,22 +173,6 @@ class LinkedinUniPileIntegration:
                     })
                 )
         return codes_status
-
-    def send_inmail(self, owner_id: str,attendees_ids: list, text:str):
-        path = "chats"
-        #url = "https://api2.unipile.com:13239/api/v1/chats"
-        data = {
-            "account_id": owner_id,
-            "text": text,
-            "attendees_ids": attendees_ids,
-            "linkedin": {
-                "api": 'recruiter',
-                "inmail": True
-            }
-        }
-
-        response = self._base_call(path=path, data=data)
-        return response.json()
 
     def auth_user(self, li_at_cookie: str, user_agent: str, li_a_cookie: str = None,
                   recruiter_contract_id: str = None) -> Optional[IntegrationAccountData]:
