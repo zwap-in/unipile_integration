@@ -24,7 +24,6 @@ class LinkedinUniPileIntegration:
         self._base_endpoint_path = base_endpoint_path
 
     def _base_call(self, path: str, data: dict, method_name: str = "post", body_type: str = "json") -> Response:
-
         if method_name == "post":
             kwargs = {
                 "json": data
@@ -166,6 +165,22 @@ class LinkedinUniPileIntegration:
                 )
         return codes_status
 
+    def send_inmail(self, owner_id: str,attendees_ids: list, text:str):
+        path = "chats"
+        #url = "https://api2.unipile.com:13239/api/v1/chats"
+        data = {
+            "account_id": owner_id,
+            "text": text,
+            "attendees_ids": attendees_ids,
+            "linkedin": {
+                "api": 'recruiter',
+                "inmail": True
+            }
+        }
+
+        response = self._base_call(path=path, data=data)
+        return response.json()
+
     def auth_user(self, li_at_cookie: str, user_agent: str, li_a_cookie: str = None,
                   recruiter_contract_id: str = None) -> Optional[IntegrationAccountData]:
 
@@ -299,3 +314,5 @@ class LinkedinUniPileIntegration:
             if data[item] is not None:
                 finals[item] = data[item]
         return finals
+
+
