@@ -145,7 +145,8 @@ class LinkedinUniPileIntegration:
         return False
 
     def send_message(self, attendees_username: list, owner_id: str, message: str,
-                     check_message_not_sent: bool = True, inmail_message: bool = False, subject: str = None) -> List[MessageData]:
+                     check_message_not_sent: bool = True, inmail_message: bool = False,
+                     subject: str = None, is_sales: bool = False) -> List[MessageData]:
 
         codes_status = []
         if message is not None and message.strip() != "":
@@ -162,7 +163,7 @@ class LinkedinUniPileIntegration:
                     if inmail_message:
                         kwargs = {
                             "linkedin": {
-                                "api": 'recruiter',
+                                "api": 'recruiter' if is_sales is False else "sales_navigator",
                                 "inmail": True,
                             },
                         }
