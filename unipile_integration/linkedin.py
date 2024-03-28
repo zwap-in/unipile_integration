@@ -135,43 +135,56 @@ class LinkedinUniPileIntegration:
             return response.status_code == 201
         return False
 
+    def send_message_to_chat(self, chat_id: str, message: str) -> bool:
+
+        if message is not None and message.strip() != "":
+            response = self._base_call(f"chats/{chat_id}/messages/", {
+                "text": message,
+            }, body_type="json")
+            return response.status_code == 201
+        return False
+
     def send_message(self, attendees_username: list, owner_id: str, message: str,
-                     check_message_not_sent: bool = True, inmail_message: bool = False) -> List[MessageData]:
+                     check_message_not_sent: bool = True, inmail_message: bool = False, subject: str = None) -> List[MessageData]:
 
         codes_status = []
-        final_users = [self._get_user_info(
-            item, owner_id
-        ) for item in attendees_username]
-        final_users = [item.user_id for item in final_users if item is not None]
-        for attendee in final_users:
-            could_send_message = self._has_conversation_started(owner_id, attendee) is False if check_message_not_sent\
-                else True
-            if could_send_message:
-                kwargs = {}
-                if inmail_message:
-                    kwargs = {
-                        "linkedin": {
-                            "api": 'recruiter',
-                            "inmail": True
+        if message is not None and message.strip() != "":
+            final_users = [self._get_user_info(
+                item, owner_id
+            ) for item in attendees_username]
+            final_users = [item.user_id for item in final_users if item is not None]
+            for attendee in final_users:
+                could_send_message = self._has_conversation_started(owner_id,
+                                                                    attendee) is False if check_message_not_sent \
+                    else True
+                if could_send_message:
+                    kwargs = {}
+                    if inmail_message:
+                        kwargs = {
+                            "linkedin": {
+                                "api": 'recruiter',
+                                "inmail": True,
+                            },
                         }
-                    }
-                response = self._base_call("chats", {
-                    "attendees_ids": attendee,
-                    "account_id": owner_id,
-                    "text": message,
-                    **kwargs
-                }, body_type="json")
-                chat_id = None
-                if response.status_code == 201:
-                    data = response.json()
-                    chat_id = data.get("chat_id")
-                codes_status.append(
-                    MessageData(**{
-                        "chat_id": chat_id,
-                        "author_id": owner_id,
-                        "linkedin_id": attendee
-                    })
-                )
+                        if subject is not None and subject.strip() != "":
+                            kwargs["subject"] = subject
+                    response = self._base_call("chats", {
+                        "attendees_ids": attendee,
+                        "account_id": owner_id,
+                        "text": message,
+                        **kwargs
+                    }, body_type="json")
+                    chat_id = None
+                    if response.status_code == 201:
+                        data = response.json()
+                        chat_id = data.get("chat_id")
+                    codes_status.append(
+                        MessageData(**{
+                            "chat_id": chat_id,
+                            "author_id": owner_id,
+                            "linkedin_id": attendee
+                        })
+                    )
         return codes_status
 
     def auth_user(self, li_at_cookie: str, user_agent: str, li_a_cookie: str = None,
