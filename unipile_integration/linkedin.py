@@ -67,9 +67,12 @@ class LinkedinUniPileIntegration:
                 "owner_id": owner_id
             })
 
-    def _get_user_info(self, linkedin_username: str, owner_id: str) -> Optional[AccountData]:
+    def _get_user_info(self, linkedin_username: str, owner_id: str, custom_api: str = None) -> Optional[AccountData]:
 
-        response = self._base_call(f"users/{linkedin_username}?account_id={owner_id}", {}, method_name="get")
+        additional_params = ""
+        if custom_api is not None and custom_api.strip() != "":
+            additional_params = f"&linkedin_api={custom_api}"
+        response = self._base_call(f"users/{linkedin_username}?account_id={owner_id}{additional_params}", {}, method_name="get")
         if response.status_code == 200:
             data = response.json()
             return AccountData(**data)
@@ -188,6 +191,12 @@ class LinkedinUniPileIntegration:
                     )
         return codes_status
 
+    def _find_personal_private_id(self, is_sales_api: bool, provider_id: str, owner_id: str) -> str:
+
+        account_data = self._get_user_info(provider_id, owner_id, "sales_navigator" if is_sales_api else "recruiter")
+        if account_data is not None:
+            return account_data.user_id
+
     def auth_user(self, li_at_cookie: str, user_agent: str, li_a_cookie: str = None,
                   recruiter_contract_id: str = None) -> Optional[IntegrationAccountData]:
 
@@ -195,7 +204,13 @@ class LinkedinUniPileIntegration:
                                                   recruiter_contract_id=recruiter_contract_id)
         if owner_id is not None:
             sleep(2)
-            return self._retrieve_current_user_data(owner_id)
+            account_data = self._retrieve_current_user_data(owner_id)
+            if account_data is not None and (account_data.is_recruiter or account_data.is_sales_navigator):
+                is_sales = account_data.is_sales_navigator
+                sleep(1)
+                provider_id = self._find_personal_private_id(is_sales, account_data.account_id, owner_id)
+                account_data.private_premium_id = provider_id
+            return account_data
 
     def delete_linkedin_connection(self, owner_id: str) -> bool:
 
