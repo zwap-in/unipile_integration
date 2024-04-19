@@ -138,6 +138,14 @@ class LinkedinUniPileIntegration:
             return response.status_code == 201
         return False
 
+    def get_chat_url(self, chat_id: str) -> str:
+
+        response = self._base_call(f"chats/{chat_id}", {},
+                                   method_name="get")
+        if response.status_code == 200:
+            data = response.json()
+            return f"https://www.linkedin.com/messaging/thread/{data.get('provider_id')}/"
+
     def send_message_to_chat(self, chat_id: str, message: str) -> bool:
 
         if message is not None and message.strip() != "":
