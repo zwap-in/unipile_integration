@@ -10,7 +10,7 @@ from requests import Response
 
 # IMPORTING LOCAL PACKAGES
 from unipile_integration.data import IntegrationAccountData, MessageData,\
-    AccountData, MessageCheck, ConnectionCheck
+    AccountData, MessageCheck, ConnectionCheck, ChatItem, MessageChat
 
 
 class LinkedinUniPileIntegration:
@@ -57,6 +57,33 @@ class LinkedinUniPileIntegration:
         if response.status_code == 201:
             data = response.json()
             return data.get("account_id")
+
+    def _read_full_items(self, url: str, max_items: int, item_type: type) -> list:
+
+        items = []
+        check = len(items) < max_items
+        while check:
+            response = self._base_call(url, {}, method_name="get")
+            if response.status_code == 200:
+                data = response.json()
+                cursor = data.get("cursor")
+                items.extend([item_type(**item) for item in data.get("items", [])])
+                check = cursor is not None and len(items) < max_items
+            else:
+                break
+        return items
+
+    def read_all_chats(self, account_id: str, max_number_of_chats: int = 100) -> List[ChatItem]:
+
+        limit = max_number_of_chats if max_number_of_chats is not None and max_number_of_chats <= 250 else 100
+        url = f"chats?limit={limit}&account_type=LINKEDIN&account_id={account_id}"
+        return self._read_full_items(url, max_number_of_chats, ChatItem)
+
+    def read_full_chat(self, chat_id: str, max_number_of_messages: int = None) -> List[MessageChat]:
+
+        limit = max_number_of_messages if max_number_of_messages is not None and max_number_of_messages <= 250 else 100
+        url = f"chats/{chat_id}/messages?limit={limit}"
+        return self._read_full_items(url, max_number_of_messages, MessageChat)
 
     def _retrieve_current_user_data(self, owner_id: str) -> Optional[IntegrationAccountData]:
 
