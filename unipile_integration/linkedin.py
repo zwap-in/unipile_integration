@@ -10,7 +10,7 @@ from requests import Response
 
 # IMPORTING LOCAL PACKAGES
 from unipile_integration.data import IntegrationAccountData, MessageData,\
-    AccountData, MessageCheck, ConnectionCheck, ChatItem, MessageChat
+    AccountData, MessageCheck, ConnectionCheck, ChatItem, MessageChat, RelationData
 
 
 class LinkedinUniPileIntegration:
@@ -338,6 +338,31 @@ class LinkedinUniPileIntegration:
                 "job_post_url": job_post_url,
                 "timing": timing_mode,
             }
+
+    def list_all_relations(self, account_id: str) -> dict:
+
+        cursor = None
+        relations = {}
+        check = True
+        while check:
+            additional_params = ""
+            if cursor is not None:
+                additional_params = f"&cursor={cursor}"
+            response = self._base_call(f"users/relations?account_id={account_id}&limit=250{additional_params}", {}, method_name="get")
+            sleep(1)
+            if response.status_code == 200:
+                data = response.json()
+                cursor = data.get("cursor")
+                relations = {
+                    **{
+                        item.member_id: item for
+                        item in [RelationData(**tmp) for tmp in data.get("items", [])]
+                    },
+                    **relations
+                }
+                check = cursor is not None
+                print(len(relations))
+        return relations
 
     @staticmethod
     def get_timing_mode(timing_urn: str) -> str:
