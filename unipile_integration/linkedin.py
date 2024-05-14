@@ -9,12 +9,11 @@ import requests
 from requests import Response
 
 # IMPORTING LOCAL PACKAGES
-from unipile_integration.data import IntegrationAccountData, MessageData,\
+from unipile_integration.data import IntegrationAccountData, MessageData, \
     AccountData, MessageCheck, ConnectionCheck, ChatItem, MessageChat, RelationData
 
 
 class LinkedinUniPileIntegration:
-
     _auth_token: str
     _base_endpoint_path: str
 
@@ -40,7 +39,7 @@ class LinkedinUniPileIntegration:
                 }
             )
         return requests.get(f"{self._base_endpoint_path}/{path}", headers={
-                "X-API-KEY": self._auth_token
+            "X-API-KEY": self._auth_token
         })
 
     def _add_linkedin_integration(self, li_at_cookie: str, user_agent: str, li_a_cookie: str = None,
@@ -99,7 +98,8 @@ class LinkedinUniPileIntegration:
         additional_params = ""
         if custom_api is not None and custom_api.strip() != "":
             additional_params = f"&linkedin_api={custom_api}"
-        response = self._base_call(f"users/{linkedin_username}?account_id={owner_id}{additional_params}", {}, method_name="get")
+        response = self._base_call(f"users/{linkedin_username}?account_id={owner_id}{additional_params}", {},
+                                   method_name="get")
         if response.status_code == 200:
             data = response.json()
             return AccountData(**data)
@@ -109,7 +109,24 @@ class LinkedinUniPileIntegration:
         response = self._base_call(f"chat_attendees/{provider_id}/chats?account_id={owner_id}", {}, method_name="get")
         return response.status_code == 200
 
-    def _get_reply_to_message_id(self, chat_id: str, owner_id: str, message_text: str, receiver_id: str) -> Optional[str]:
+    def list_all_chats_between(self, owner_id: str, public_attendee_slug: str) -> List[ChatItem]:
+        attendee: AccountData | None = self._get_user_info(linkedin_username=public_attendee_slug, owner_id=owner_id)
+        if attendee is None:
+            return []
+
+        response = self._base_call(
+            f"chat_attendees/{attendee.user_id}/chats?account_id={owner_id}",
+            {},
+            method_name="get"
+        )
+        if response.status_code != 200:
+            return []
+
+        data = response.json()
+        return [ChatItem(**item) for item in data.get("items")]
+
+    def _get_reply_to_message_id(self, chat_id: str, owner_id: str, message_text: str, receiver_id: str) -> Optional[
+        str]:
 
         response = self._base_call(f"chats/{chat_id}/messages?sender_id={owner_id}", {}, method_name="get")
         if response.status_code == 200:
@@ -129,7 +146,8 @@ class LinkedinUniPileIntegration:
             return "\n".join(replies)
         return None
 
-    def _get_chat_by_username(self, linkedin_username: str, owner_id: str, message_text: str) -> Optional[Tuple[str, str]]:
+    def _get_chat_by_username(self, linkedin_username: str, owner_id: str, message_text: str) -> Optional[
+        Tuple[str, str]]:
 
         account_data = self._get_user_info(linkedin_username, owner_id)
         has_connection, user_id = account_data.has_connection, account_data.user_id
@@ -348,7 +366,8 @@ class LinkedinUniPileIntegration:
             additional_params = ""
             if cursor is not None:
                 additional_params = f"&cursor={cursor}"
-            response = self._base_call(f"users/relations?account_id={account_id}&limit=250{additional_params}", {}, method_name="get")
+            response = self._base_call(f"users/relations?account_id={account_id}&limit=250{additional_params}", {},
+                                       method_name="get")
             sleep(1)
             if response.status_code == 200:
                 data = response.json()
@@ -396,5 +415,3 @@ class LinkedinUniPileIntegration:
             if data[item] is not None:
                 finals[item] = data[item]
         return finals
-
-
